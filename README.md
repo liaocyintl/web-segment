@@ -46,16 +46,6 @@ Structure:
 ## Cite
 If you use WebSegment in your work please cite our paper!
 ```text
-@article{websegment1,
-  title={Event.Locky: System of Event-Data Extraction from Webpages based on Web Mining},
-  author={Liao, Chenyi and Hiroi, Kei and Kaji, Katsuhiko and Sakurada, Ken and Kawaguchi, Nobuo},
-  journal={Journal of Information Processing},
-  volume={25},
-  pages = {321--330},
-  year={2017}
-}
-or
-
 @article{websegment2,
   title={An event data extraction method based on HTML structure analysis and machine learning},
   author={Liao, Chenyi and Hiroi, Kei and Kaji, Katsuhiko and Kawaguchi, Nobuo},
@@ -64,5 +54,4 @@ or
   pages = {217-222},
   year={2015}
 }
-
 ```
