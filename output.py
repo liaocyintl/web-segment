@@ -1,7 +1,7 @@
 from urllib.parse import urljoin
 import bs4
 from lcypytools import common
-import json
+# import cairosvg
 import urllib.request
 import requests
 import shutil
@@ -46,6 +46,35 @@ def __get_css_background_image_urls(url, node, browser):
             pass
     return image_urls
 
+def __rgba2RGBA(rgba):
+    try:
+        rgba = rgba.replace("rgba(", "").replace(")", "")
+        (R, G, B, A) = tuple(rgba.split(","))
+        return int(R), int(G), int(B), float(A)
+    except:
+        return 0, 0, 0, 0
+
+def __get_css_background_color(node, browser):
+    nodes = [node]
+    for p in node.parents:
+        nodes.append(p)
+
+    (R, G, B) = (255, 255, 255)
+    for node in nodes:
+        try:
+            css_selector = __get_css_selector(node)
+            color = browser.find_element_by_css_selector(css_selector).value_of_css_property(
+                "background-color")
+
+            Rn, Gn, Bn, A = __rgba2RGBA(color)
+
+            if A == 1:
+                (R, G, B) = (Rn, Gn, Bn)
+                break
+        except:
+            pass
+    return R, G, B
+
 def output(url, browser, blocks, output_folder):
     segids = []
     rid = 0
@@ -65,6 +94,9 @@ def output(url, browser, blocks, output_folder):
                 dict_img = dict()
                 dict_img["alt"] = ""
                 dict_img["src"] = url
+                R, G, B = __get_css_background_color(node, browser)
+                dict_img["bg_color"] = "%d,%d,%d" % (R, G, B)
+
                 images.append(dict_img)
             # the images in css background -- end
 
@@ -74,6 +106,10 @@ def output(url, browser, blocks, output_folder):
                     dict_img["src"] = urljoin(url, img["src"])
                 if "alt" in img.attrs:
                     dict_img["alt"] = img["alt"]
+
+                R, G, B = __get_css_background_color(img, browser)
+                dict_img["bg_color"] = "%d,%d,%d" % (R, G, B)
+
                 images.append(dict_img)
 
             for link in node.find_all("a"):
@@ -94,12 +130,6 @@ def output(url, browser, blocks, output_folder):
 
         if sid not in segs:
             segs[sid] = {"segmentid": sid, "cssselector": __get_css_selector(block[0].parent), "records": []}
-        # try:
-        #         element = browser.find_element_by_css_selector(segs[sid]["cssselector"])
-        #         segs[sid]["rect"] = element.rect
-        #         pass
-        #     except:
-        #         pass
 
         segs[sid]["records"].append(
             {"recordid": rid, "texts": texts, "images": images, "cssselectors": cssselectors, "links": links})
@@ -148,22 +178,26 @@ def __encode_url(link):
     link = urllib.parse.urlunsplit((scheme, netloc, path, query, fragment))
     return link
 
-def output_images(output_folder, json_data, output_image_type="jpg"):
+def output_images(output_folder, json_data):
     tmp_path = output_folder + "/tmp/"
     path = output_folder + "/images/"
+
     common.prepare_clean_dir(tmp_path)
     common.prepare_clean_dir(path)
+
+    i = 0
     for segment in json_data["segments"]:
         for record in segment["records"]:
-            for i, image in enumerate(record["images"]):
+            for image in record["images"]:
                 try:
-                    original_extension = image["src"].split('/')[-1].split('.')[-1]
-                    source_file_name = tmp_path + str(record["recordid"]) + "_" + str(i) + "." + original_extension
-                    target_file_name = path + str(record["recordid"]) + "_" + str(i) + "." + output_image_type
-                    # urllib.request.urlretrieve(__encode_url(image["src"]), source_file_name)
+                    original_extension = image["src"].split('/')[-1].split('.')[-1].split("?")[0]
+                    source_file_name_only = tmp_path + str(i)
+                    source_file_name = source_file_name_only + "." + original_extension
+                    target_file_name = path + str(i) + ".jpg"
 
-                    r = requests.get(__encode_url(image["src"]),
-                                     stream=True, headers={'User-agent': 'Mozilla/5.0'})
+                    # urllib.request.urlretrieve(self.__encode_url(image["src"]), source_file_name)
+
+                    r = requests.get(__encode_url(image["src"]), stream=True, headers={'User-agent': 'Mozilla/5.0'})
                     if r.status_code == 200:
                         with open(source_file_name, 'wb') as f:
                             r.raw.decode_content = True
@@ -171,13 +205,25 @@ def output_images(output_folder, json_data, output_image_type="jpg"):
                     else:
                         continue
 
-                    im = Image.open(source_file_name)
-                    # if white_image_background:
-                    #     bg = Image.new("RGBA", im.size, (255, 255, 255))
-                    #     bg.paste(im, im)
-                    #     im = bg
-                    rgb_im = im.convert('RGBA')
-                    rgb_im.save(target_file_name)
+                    if original_extension == "svg":
+                        # cairosvg.svg2png(url=source_file_name, write_to=source_file_name_only + ".png")
+                        # source_file_name = source_file_name_only + ".png"
+                        continue
+
+                    [R, G, B] = [int(a) for a in image["bg_color"].split(",")]
+                    im = Image.open(source_file_name).convert('RGBA')
+                    bg = Image.new("RGB", im.size, (R, G, B))
+                    bg.paste(im, im)
+                    im = bg
+
+                    # rgb_im = im.convert('RGBA')
+                    im.save(target_file_name)
+                    image["path"] = target_file_name
+
                     # os.remove(source_file_name)
-                except Exception as err:
+
+                except Exception as e:
                     pass
+                finally:
+                    i += 1
+    common.save_json(output_folder + "/result.json", json_data, encoding='utf-8')
