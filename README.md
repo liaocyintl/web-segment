@@ -159,7 +159,7 @@ Therefore, when the crawler finds an image type capable of having transparency, 
 ## Cite
 If you like this work please cite our paper
 ```text
-@article{websegment2,
+@article{websegment,
   title={An Event Data Extraction Method Based on HTML Structure Analysis and Machine Learning},
   author={Liao, Chenyi and Hiroi, Kei and Kaji, Katsuhiko and Kawaguchi, Nobuo},
   journal={Computer Software and Applications Conference (COMPSAC)},
