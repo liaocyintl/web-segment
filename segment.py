@@ -24,7 +24,7 @@ class Segment:
         self.browser.set_window_size(setting.SCREEN_WIDTH, 800)  # set the window size that you need
         self.parser = HTMLParser()
 
-    def segment(self, url, output_folder="output", output_images=False):
+    def segment(self, url, output_folder="output", is_output_images=False):
         self.url = url
         self.output_folder = self.remove_slash(output_folder)
         self.log = common.log()
@@ -307,10 +307,10 @@ class Segment:
             sid = str(segids.index(lid))
 
             if sid not in segs:
-                segs[sid] = {"segment_id": sid, "css_selector": self.__get_css_selector(block[0].parent), "records": []}
+                segs[sid] = {"segment_id": int(sid), "css_selector": self.__get_css_selector(block[0].parent), "records": []}
 
             segs[sid]["records"].append(
-                {"record_id": rid, "texts": texts, "images": images, "css_selectors": cssselectors, "links": links})
+                {"record_id": rid, "texts": texts, "images": images, "css_selector": cssselectors, "links": links})
             rid += 1
 
         self.json_data = dict()
