@@ -1,19 +1,53 @@
+Introduction
+======
+
+Data on a webpage are composed of semi-structured data, which cannot be directly processed.
+We propose this web segment algorithm, which converts a HTML document into structured data.
+Through this algorithm, a HTML document is segmented into "Segments" and "Records" corresponding to "Tables" and "Records" in a structured database, respectively.
+
+For example, a webpage shown as follow is segmented into "Segment 1" that contains "Record 1" and "Record2",
+and "Segment 2" that contains "Record 3" and "Record 4".
+
+![](imgs\c66da037.png)
+
+Corresponding to a database, they should be:
+
+Segment 1:
+
+|  id  |  text  |
+| ---- | ---- |
+|  1  |  July 2, 2018 Nagoya University's Offices to Be Closed on August 13 and... |
+|  2  |  To All Students, Faculty Members, and Staff Members of Nagoya Univ...  |
+
+Segment 2:
+
+|  id  |  text  |
+| ---- | ---- |
+|  3  |  Prof. Masaru Hori of the Institutes of Innovation for Future Society... |
+|  4  |  Former Nagoya University Associate Prof. Masaki Kashiwara Selected...  |
 
 
-## Get Started
+Quick Started
+======
 
-### Errors
+- Our Testing Environment (Also can be running on Linux or Mac)
+    - OS: Microsoft Windows 10 Pro
+    - Python: 3.6.5
 
-- OSError: dlopen() failed to load a library: cairo / cairo-2 / cairo-gobject-2
-in windows please install http://www.msys2.org/
+1. clone the code
 
-You should install https://cairographics.org/download/ first
+```bash
+$ 
+```
+
+1. 
+
 
 ## Output
 
 ### about result.json
 
-Structure:
+result.json:
 ```json
 {
   "segments": [
@@ -47,7 +81,7 @@ Structure:
 If you use WebSegment in your work please cite our paper!
 ```text
 @article{websegment2,
-  title={An event data extraction method based on HTML structure analysis and machine learning},
+  title={An Event Data Extraction Method Based on HTML Structure Analysis and Machine Learning},
   author={Liao, Chenyi and Hiroi, Kei and Kaji, Katsuhiko and Kawaguchi, Nobuo},
   journal={Computer Software and Applications Conference (COMPSAC)},
   volume={3},

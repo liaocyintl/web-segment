@@ -8,11 +8,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from PIL import Image
 from lcypytools import common
-import urllib.request
 import bs4
-import os
-import errno
-import json
 
 import requests
 import shutil
@@ -25,46 +21,44 @@ class Segment:
         options.binary_location = setting.CHROME_BINARY_LOCATION
         options.add_argument('--headless')
         self.browser = webdriver.Chrome(chrome_options=options, executable_path=setting.DRIVER_PATH)
-        self.browser.set_window_size(setting.SNAPSHOT_WIDTH, 800)  # set the window size that you need
+        self.browser.set_window_size(setting.SCREEN_WIDTH, 800)  # set the window size that you need
         self.parser = HTMLParser()
 
-    def segment(self, url, output_folder="output", output_images=False, output_image_type="jpg",
-                white_image_background=False):
+    def segment(self, url, output_folder="output", output_images=False):
         self.url = url
-        self.output_folder = output_folder
-        self.output_image_type = output_image_type
-        self.white_image_background = white_image_background
+        self.output_folder = self.remove_slash(output_folder)
+        self.log = common.log()
 
+        self.log.write("Crawl HTML Document from %s" % self.url)
         self.__crawler()
 
+        self.log.write("Run Pruning on %s" % self.url)
         self.__pruning()
+        self.log.write("Run Partial Tree Matching on %s" % self.url)
         self.__partial_tree_matching()
+        self.log.write("Run Backtracking on %s" % self.url)
         self.__backtracking()
 
+        self.log.write("Output Result JSON File on  %s" % self.url)
         self.__output()
 
         if output_images:
+            self.log.write("Output Images on  %s" % self.url)
             self.__output_images()
-            self.__output_segment_images()
-        pass
 
-    # convert website url into folder name
-    def __url_to_name(self):
-        name = self.url
-        name = name.replace("https://", "")
-        name = name.replace("http://", "")
-        name = name.replace("/", "_")
-        name = name.replace(".", "_")
-        return name
+        self.log.write("Finished on  %s" % self.url)
 
     def __crawler(self):
         self.browser.get(self.url)
         self.soup = BeautifulSoup(self.browser.page_source, 'html.parser')
+        page_height = self.browser.find_element_by_tag_name("body").rect["height"]
+        self.browser.set_window_size(setting.SCREEN_WIDTH, page_height)
+
+        common.prepare_clean_dir(self.output_folder)
+        self.browser.save_screenshot(self.output_folder + "/screenshot.png")
 
     def __pruning(self):
         tagbody = self.soup.find("body")
-        if tagbody is None:
-            raise Exception("This HTML document has no <body> tag")
         tagbody["lid"] = str(-1)
         tagbody["sn"] = str(1)
         self.allnodes = [tagbody]
@@ -90,7 +84,6 @@ class Segment:
 
         i = 0
         while i < len(self.allnodes):
-            # print(str(i) + "/" + str(len(self.allnodes)))
 
             node = self.allnodes[i]
 
@@ -220,6 +213,43 @@ class Segment:
                 pass
         return image_urls
 
+    def __get_css_selector(self, node):
+        path = [self.__get_element(node)]
+        for parent in node.parents:
+            if parent.name == "[document]":
+                break
+            path.insert(0, self.__get_element(parent))
+        return ' > '.join(path)
+
+    def __rgba2RGBA(self, rgba):
+        try:
+            rgba = rgba.replace("rgba(", "").replace(")", "")
+            (R, G, B, A) = tuple(rgba.split(","))
+            return int(R), int(G), int(B), float(A)
+        except:
+            return 0, 0, 0, 0
+
+    def __get_css_background_color(self, node):
+        nodes = [node]
+        for p in node.parents:
+            nodes.append(p)
+
+        (R, G, B) = (255, 255, 255)
+        for node in nodes:
+            try:
+                css_selector = self.__get_css_selector(node)
+                color = self.browser.find_element_by_css_selector(css_selector).value_of_css_property(
+                    "background-color")
+
+                Rn, Gn, Bn, A = self.__rgba2RGBA(color)
+
+                if A == 1:
+                    (R, G, B) = (Rn, Gn, Bn)
+                    break
+            except:
+                pass
+        return R, G, B
+
     def __output(self):
 
         segids = []
@@ -231,18 +261,23 @@ class Segment:
             texts, images, links, cssselectors = [], [], [], []
 
             for node in block:
+                # extract text from node
                 for text in node.stripped_strings:
                     texts.append(text)
+                # extract text from node -- end
 
-                # the images in css background
+                # extract images in css background
                 background_image_urls = self.__get_css_background_image_urls(node)
                 for url in background_image_urls:
                     dict_img = dict()
                     dict_img["alt"] = ""
-                    dict_img["src"] = url
+                    dict_img["src"] = urljoin(self.url, url)
+                    r, g, b = self.__get_css_background_color(node)
+                    dict_img["bg_color"] = "%d,%d,%d" % (r, g, b)
                     images.append(dict_img)
-                # the images in css background -- end
+                # extract images in css background -- end
 
+                # extract images in <img> element
                 for img in node.find_all("img"):
                     dict_img = dict()
                     if "src" in img.attrs:
@@ -250,16 +285,20 @@ class Segment:
                     if "alt" in img.attrs:
                         dict_img["alt"] = img["alt"]
                     images.append(dict_img)
+                    r, g, b = self.__get_css_background_color(img)
+                    dict_img["bg_color"] = "%d,%d,%d" % (r, g, b)
+                # extract images in <img> element
 
+                # extract hyperlink from node
                 for link in node.find_all("a"):
                     if "href" in link.attrs:
                         links.append({"href": urljoin(self.url, link["href"])})
+                # extract hyperlink from node -- end
 
                 cssselectors.append(self.__get_css_selector(node))
 
             if len(texts) == 0 and len(images) == 0:
                 continue
-            # texts -- end
 
             lid = block[0]["lid"]
 
@@ -277,36 +316,26 @@ class Segment:
         self.json_data = dict()
         self.json_data["segments"] = [value for key, value in segs.items()]
         self.json_data["url"] = self.url
+        self.json_data["title"] = self.browser.title
 
-        path = self.output_folder + "/"
-        screenshot_path = path + "/screenshot.png"
-        common.prepare_clean_dir(screenshot_path)
-        common.prepare_clean_dir(screenshot_path)
-        with open(path + "/result.json", 'w', encoding=setting.OUT_ENCODING) as outfile:
-            json.dump(self.json_data, outfile, ensure_ascii=False)
-
-    def __encode_url(self, link):
-        scheme, netloc, path, query, fragment = urllib.parse.urlsplit(link)
-        path = urllib.parse.quote(path)
-        link = urllib.parse.urlunsplit((scheme, netloc, path, query, fragment))
-        return link
+        common.save_json(self.output_folder + "/result.json", self.json_data, encoding=setting.OUTPUT_JSON_ENCODING)
 
     def __output_images(self):
-        tmp_path = self.output_folder + "/tmp/"
-        path = self.output_folder + "/images/"
-        common.prepare_clean_dir(tmp_path + "image.png")
-        common.prepare_clean_dir(path + "image.png")
+        tmp_path = self.output_folder + "/tmp"
+        path = self.output_folder + "/images"
+        common.prepare_clean_dir(tmp_path)
+        common.prepare_clean_dir(path)
         for segment in self.json_data["segments"]:
             for record in segment["records"]:
                 for i, image in enumerate(record["images"]):
                     try:
-                        original_extension = image["src"].split('/')[-1].split('.')[-1]
-                        source_file_name = tmp_path + str(record["recordid"]) + "_" + str(i) + "." + original_extension
-                        target_file_name = path + str(record["recordid"]) + "_" + str(i) + "." + self.output_image_type
-                        # urllib.request.urlretrieve(self.__encode_url(image["src"]), source_file_name)
+                        file_name = "%s_%s" % (record["record_id"], i)
+                        source_file_name_only = tmp_path + "/" + file_name
+                        original_extension = image["src"].split('/')[-1].split('.')[-1].split("?")[0]
+                        source_file_name = source_file_name_only + "." + original_extension
+                        target_file_name = path + "/" + file_name + "." + setting.OUTPUT_IMAGE_TYPE
 
-                        r = requests.get(self.__encode_url(image["src"]),
-                                         stream=True, headers={'User-agent': 'Mozilla/5.0'})
+                        r = requests.get(image["src"], stream=True, headers={'User-agent': 'Mozilla/5.0'})
                         if r.status_code == 200:
                             with open(source_file_name, 'wb') as f:
                                 r.raw.decode_content = True
@@ -314,13 +343,25 @@ class Segment:
                         else:
                             continue
 
-                        im = Image.open(source_file_name)
-                        if self.white_image_background:
-                            bg = Image.new("RGBA", im.size, (255, 255, 255))
-                            bg.paste(im, im)
-                            im = bg
-                        rgb_im = im.convert('RGBA')
-                        rgb_im.save(target_file_name)
-                        # os.remove(source_file_name)
-                    except Exception as err:
+                        [R, G, B] = [int(a) for a in image["bg_color"].split(",")]
+                        im = Image.open(source_file_name).convert('RGBA')
+                        bg = Image.new("RGB", im.size, (R, G, B))
+                        bg.paste(im, im)
+                        im = bg
+                        im.save(target_file_name)
+
+                        image["path"] = target_file_name
+                    except Exception:
                         pass
+
+        common.save_json(self.output_folder + "/result.json", self.json_data, encoding=setting.OUTPUT_JSON_ENCODING)
+
+        shutil.rmtree(tmp_path)
+
+    def remove_slash(self, path):
+        for i in range(len(path)):
+            if path.endswith('/'):
+                path = path[:-1]
+            if path.endswith('\\'):
+                path = path[:-1]
+        return path
