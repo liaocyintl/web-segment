@@ -5,10 +5,10 @@ Data on a webpage are composed of semi-structured data, which cannot be directly
 We propose this web segment algorithm, which converts a HTML document into structured data.
 Through this algorithm, a HTML document is segmented into "Segments" and "Records" corresponding to "Tables" and "Records" in a structured database, respectively.
 
-For example, a webpage shown as follow is segmented into "Segment 1" that contains "Record 1" and "Record2",
-and "Segment 2" that contains "Record 3" and "Record 4".
+As shown in follow, a [webpage](http://www.sukiya.jp/) is segmented into "Segment 1" that contains "Record 1 to 5",
+and "Segment 2" that contains "Record 6 to 10", and "Segment 3" that contains "Record 11 to 16".
 
-![](imgs\c66da037.png)
+![](imgs\aecfc3c8.png)
 
 Corresponding to a database, they should be:
 
@@ -16,15 +16,28 @@ Segment 1:
 
 |  id  |  text  |
 | ---- | ---- |
-|  1  |  July 2, 2018 Nagoya University's Offices to Be Closed on August 13 and... |
-|  2  |  To All Students, Faculty Members, and Staff Members of Nagoya Univ...  |
+|  1  |  Image(http://www.sukiya.jp/common/img/bnr_sub_contents_member.png) |
+|  2  |  Image(http://www.sukiya.jp/common/img/bnr_sub_contents_line.png)  |
+|  ...  |  ...  |
+|  5  |  Image(http://www.sukiya.jp/common/img/bnr_sub_contents_partner.png)  |
 
 Segment 2:
 
 |  id  |  text  |
 | ---- | ---- |
-|  3  |  Prof. Masaru Hori of the Institutes of Innovation for Future Society... |
-|  4  |  Former Nagoya University Associate Prof. Masaki Kashiwara Selected...  |
+|  6  |  2018年07月05日	 【すき家】7/5（木）朝9:00より『Sukipass』第２弾 販売開始！ |
+|  7  |  2018年07月04日	 【すき家】「夏うた」大募集！  |
+|  ...  |  ...  |
+|  10  |  2018年06月20日 【すき家】新メニュー販売開始のお知らせ（シーザーレタス牛麺）  |
+
+Segment 3:
+
+|  id  |  text  |
+| ---- | ---- |
+|  11  |  2017年11月15日朝9時オープン	松戸秋山店 |
+|  12  |  2017年10月30日朝9時オープン	９号亀岡篠町店 |
+|  ...  |  ... |
+|  16  | 2017年5月8日朝9時オープン！	東京高等裁判所内店  |
 
 
 Quick Started
