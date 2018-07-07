@@ -8,7 +8,7 @@ Through this algorithm, a HTML document is segmented into "Segments" and "Record
 As shown in follow, a [webpage](http://www.sukiya.jp/) is segmented into "Segment 1" that contains "Record 1 to 5",
 and "Segment 2" that contains "Record 6 to 10", and "Segment 3" that contains "Record 11 to 16".
 
-![](imgs\aecfc3c8.png)
+![An Example of Web Segment](imgs/aecfc3c8.png)
 
 Corresponding to a database, they should be:
 
@@ -43,7 +43,7 @@ Segment 3:
 Quick Started
 ======
 
-- Our Testing Environment (Also can be ran on Linux or Mac)
+- Our Testing Environment (It also can be ran on Linux or Mac)
     - OS: Microsoft Windows 10 Pro
     - Python: 3.6.5
     - Chrome: 67.0.3396.79 (Official Build) (64-bit)
