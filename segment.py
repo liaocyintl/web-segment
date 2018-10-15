@@ -42,7 +42,7 @@ class Segment:
         self.log.write("Output Result JSON File on  %s" % self.url)
         self.__output()
 
-        if output_images:
+        if is_output_images:
             self.log.write("Output Images on  %s" % self.url)
             self.__output_images()
 
