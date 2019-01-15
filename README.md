@@ -53,6 +53,8 @@ Quick Started
 
 ```bash
 $ git clone --recursive https://github.com/liaocyintl/WebSegment.git
+
+$ chmod +x WebSegment/driver/chromedriver
 ```
 
 - Config **setting.py**
