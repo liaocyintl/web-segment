@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from PIL import Image
-from lcypytools import common
+import common
 import bs4
 
 import requests
@@ -18,7 +18,7 @@ import setting
 class Segment:
     def __init__(self):
         options = Options()
-        options.binary_location = setting.CHROME_BINARY_LOCATION
+        # options.binary_location = setting.CHROME_BINARY_LOCATION
         options.add_argument('--headless')
         self.browser = webdriver.Chrome(chrome_options=options, executable_path=setting.DRIVER_PATH)
         self.browser.set_window_size(setting.SCREEN_WIDTH, 800)  # set the window size that you need
